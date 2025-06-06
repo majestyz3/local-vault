@@ -1,0 +1,355 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:3.1.6
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  # Cluster 1
+  c1-node1:
+    image: hashicorp/vault-enterprise:1.19.0-ent
+    container_name: c1-node1
+    hostname: c1-node1
+    volumes:
+      - c1-node1-data:/vault/data
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        ui = true
+        listener "tcp" {
+          address = "0.0.0.0:8200"
+          cluster_address = "0.0.0.0:8201"
+          tls_disable = true
+        }
+        storage "raft" {
+          path = "/vault/data"
+          node_id = "c1-node1"
+        }
+        cluster_addr = "http://c1-node1:8201"
+        api_addr = "http://c1-node1:8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cluster1.rule=Host(`cluster1.local`)"
+      - "traefik.http.services.cluster1.loadbalancer.server.port=8200"
+
+  c1-node2:
+    image: hashicorp/vault-enterprise:1.19.0-ent
+    container_name: c1-node2
+    hostname: c1-node2
+    volumes:
+      - c1-node2-data:/vault/data
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        ui = true
+        listener "tcp" {
+          address = "0.0.0.0:8200"
+          cluster_address = "0.0.0.0:8201"
+          tls_disable = true
+        }
+        storage "raft" {
+          path = "/vault/data"
+          node_id = "c1-node2"
+          retry_join {
+            leader_api_addr = "http://c1-node1:8200"
+          }
+        }
+        cluster_addr = "http://c1-node2:8201"
+        api_addr = "http://c1-node2:8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cluster1.rule=Host(`cluster1.local`)"
+      - "traefik.http.services.cluster1.loadbalancer.server.port=8200"
+
+  c1-node3:
+    image: hashicorp/vault-enterprise:1.19.0-ent
+    container_name: c1-node3
+    hostname: c1-node3
+    volumes:
+      - c1-node3-data:/vault/data
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        ui = true
+        listener "tcp" {
+          address = "0.0.0.0:8200"
+          cluster_address = "0.0.0.0:8201"
+          tls_disable = true
+        }
+        storage "raft" {
+          path = "/vault/data"
+          node_id = "c1-node3"
+          retry_join {
+            leader_api_addr = "http://c1-node1:8200"
+          }
+        }
+        cluster_addr = "http://c1-node3:8201"
+        api_addr = "http://c1-node3:8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cluster1.rule=Host(`cluster1.local`)"
+      - "traefik.http.services.cluster1.loadbalancer.server.port=8200"
+
+  # Cluster 2
+  c2-node1:
+    image: hashicorp/vault-enterprise:1.19.0-ent
+    container_name: c2-node1
+    hostname: c2-node1
+    volumes:
+      - c2-node1-data:/vault/data
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        ui = true
+        listener "tcp" {
+          address = "0.0.0.0:8200"
+          cluster_address = "0.0.0.0:8201"
+          tls_disable = true
+        }
+        storage "raft" {
+          path = "/vault/data"
+          node_id = "c2-node1"
+        }
+        cluster_addr = "http://c2-node1:8201"
+        api_addr = "http://c2-node1:8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cluster2.rule=Host(`cluster2.local`)"
+      - "traefik.http.services.cluster2.loadbalancer.server.port=8200"
+
+  c2-node2:
+    image: hashicorp/vault-enterprise:1.19.0-ent
+    container_name: c2-node2
+    hostname: c2-node2
+    volumes:
+      - c2-node2-data:/vault/data
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        ui = true
+        listener "tcp" {
+          address = "0.0.0.0:8200"
+          cluster_address = "0.0.0.0:8201"
+          tls_disable = true
+        }
+        storage "raft" {
+          path = "/vault/data"
+          node_id = "c2-node2"
+          retry_join {
+            leader_api_addr = "http://c2-node1:8200"
+          }
+        }
+        cluster_addr = "http://c2-node2:8201"
+        api_addr = "http://c2-node2:8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cluster2.rule=Host(`cluster2.local`)"
+      - "traefik.http.services.cluster2.loadbalancer.server.port=8200"
+
+  c2-node3:
+    image: hashicorp/vault-enterprise:1.19.0-ent
+    container_name: c2-node3
+    hostname: c2-node3
+    volumes:
+      - c2-node3-data:/vault/data
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        ui = true
+        listener "tcp" {
+          address = "0.0.0.0:8200"
+          cluster_address = "0.0.0.0:8201"
+          tls_disable = true
+        }
+        storage "raft" {
+          path = "/vault/data"
+          node_id = "c2-node3"
+          retry_join {
+            leader_api_addr = "http://c2-node1:8200"
+          }
+        }
+        cluster_addr = "http://c2-node3:8201"
+        api_addr = "http://c2-node3:8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cluster2.rule=Host(`cluster2.local`)"
+      - "traefik.http.services.cluster2.loadbalancer.server.port=8200"
+
+  # Cluster 3
+  c3-node1:
+    image: hashicorp/vault-enterprise:1.19.0-ent
+    container_name: c3-node1
+    hostname: c3-node1
+    volumes:
+      - c3-node1-data:/vault/data
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        ui = true
+        listener "tcp" {
+          address = "0.0.0.0:8200"
+          cluster_address = "0.0.0.0:8201"
+          tls_disable = true
+        }
+        storage "raft" {
+          path = "/vault/data"
+          node_id = "c3-node1"
+        }
+        cluster_addr = "http://c3-node1:8201"
+        api_addr = "http://c3-node1:8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cluster3.rule=Host(`cluster3.local`)"
+      - "traefik.http.services.cluster3.loadbalancer.server.port=8200"
+
+  c3-node2:
+    image: hashicorp/vault-enterprise:1.19.0-ent
+    container_name: c3-node2
+    hostname: c3-node2
+    volumes:
+      - c3-node2-data:/vault/data
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        ui = true
+        listener "tcp" {
+          address = "0.0.0.0:8200"
+          cluster_address = "0.0.0.0:8201"
+          tls_disable = true
+        }
+        storage "raft" {
+          path = "/vault/data"
+          node_id = "c3-node2"
+          retry_join {
+            leader_api_addr = "http://c3-node1:8200"
+          }
+        }
+        cluster_addr = "http://c3-node2:8201"
+        api_addr = "http://c3-node2:8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cluster3.rule=Host(`cluster3.local`)"
+      - "traefik.http.services.cluster3.loadbalancer.server.port=8200"
+
+  c3-node3:
+    image: hashicorp/vault-enterprise:1.19.0-ent
+    container_name: c3-node3
+    hostname: c3-node3
+    volumes:
+      - c3-node3-data:/vault/data
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        ui = true
+        listener "tcp" {
+          address = "0.0.0.0:8200"
+          cluster_address = "0.0.0.0:8201"
+          tls_disable = true
+        }
+        storage "raft" {
+          path = "/vault/data"
+          node_id = "c3-node3"
+          retry_join {
+            leader_api_addr = "http://c3-node1:8200"
+          }
+        }
+        cluster_addr = "http://c3-node3:8201"
+        api_addr = "http://c3-node3:8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cluster3.rule=Host(`cluster3.local`)"
+      - "traefik.http.services.cluster3.loadbalancer.server.port=8200"
+
+  # Cluster 4
+  c4-node1:
+    image: hashicorp/vault-enterprise:1.19.0-ent
+    container_name: c4-node1
+    hostname: c4-node1
+    volumes:
+      - c4-node1-data:/vault/data
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        ui = true
+        listener "tcp" {
+          address = "0.0.0.0:8200"
+          cluster_address = "0.0.0.0:8201"
+          tls_disable = true
+        }
+        storage "raft" {
+          path = "/vault/data"
+          node_id = "c4-node1"
+        }
+        cluster_addr = "http://c4-node1:8201"
+        api_addr = "http://c4-node1:8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cluster4.rule=Host(`cluster4.local`)"
+      - "traefik.http.services.cluster4.loadbalancer.server.port=8200"
+
+  c4-node2:
+    image: hashicorp/vault-enterprise:1.19.0-ent
+    container_name: c4-node2
+    hostname: c4-node2
+    volumes:
+      - c4-node2-data:/vault/data
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        ui = true
+        listener "tcp" {
+          address = "0.0.0.0:8200"
+          cluster_address = "0.0.0.0:8201"
+          tls_disable = true
+        }
+        storage "raft" {
+          path = "/vault/data"
+          node_id = "c4-node2"
+          retry_join {
+            leader_api_addr = "http://c4-node1:8200"
+          }
+        }
+        cluster_addr = "http://c4-node2:8201"
+        api_addr = "http://c4-node2:8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cluster4.rule=Host(`cluster4.local`)"
+      - "traefik.http.services.cluster4.loadbalancer.server.port=8200"
+
+  c4-node3:
+    image: hashicorp/vault-enterprise:1.19.0-ent
+    container_name: c4-node3
+    hostname: c4-node3
+    volumes:
+      - c4-node3-data:/vault/data
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        ui = true
+        listener "tcp" {
+          address = "0.0.0.0:8200"
+          cluster_address = "0.0.0.0:8201"
+          tls_disable = true
+        }
+        storage "raft" {
+          path = "/vault/data"
+          node_id = "c4-node3"
+          retry_join {
+            leader_api_addr = "http://c4-node1:8200"
+          }
+        }
+        cluster_addr = "http://c4-node3:8201"
+        api_addr = "http://c4-node3:8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cluster4.rule=Host(`cluster4.local`)"
+      - "traefik.http.services.cluster4.loadbalancer.server.port=8200"
+
+volumes:
+  c1-node1-data:
+  c1-node2-data:
+  c1-node3-data:
+  c2-node1-data:
+  c2-node2-data:
+  c2-node3-data:
+  c3-node1-data:
+  c3-node2-data:
+  c3-node3-data:
+  c4-node1-data:
+  c4-node2-data:
+  c4-node3-data:
