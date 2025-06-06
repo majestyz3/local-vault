@@ -1,0 +1,6 @@
+#!/bin/bash
+
+. ~/data/venv
+
+cd ~/data && \
+  /opt/homebrew/bin/docker-compose down
