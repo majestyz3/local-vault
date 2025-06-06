@@ -25,17 +25,12 @@ and loading common environment variables.
 2. **Vault CLI** &ndash; used by the helper scripts for initialization and
    unsealing.
 3. **`jq`** &ndash; used by the `venv` script to parse `vault-init.json`.
-4. **TLS certificates** – create a `certs/` directory in the repository root and
-   place the following files inside:
-   - `fullchain.pem` – certificate chain for the host names.
-   - `privkey.pem` – private key for the certificate.
-   - `certificate.pem` – certificate without the chain.
-   - `ca.pem` – root certificate of your CA.
+4. **OpenSSL** &ndash; required for `setup.sh`, which generates the TLS certificates.
 5. **Vault license** &ndash; copy your `vault.hclic` file to the repository root.
 
-The Compose file also mounts a `traefik` directory that should contain a
-`tls.toml` file declaring the TLS certificates for Traefik. A minimal example is
-shown below:
+The Compose file also mounts a `traefik` directory that contains a
+`tls.toml` file declaring the TLS certificates for Traefik. `setup.sh` writes
+this file automatically. A minimal example is shown below:
 
 ```toml
 [[tls.certificates]]
@@ -53,10 +48,13 @@ shown below:
    cd <any-path>
    ```
 
-2. Ensure the `certs/` and `traefik/` directories contain the required files
-   described above. Place your Vault license at `vault.hclic`.
+2. Run the setup script to generate fresh TLS certificates and create the
+   required directories. Any existing files in `certs/` will be replaced.
+   ```bash
+   ./setup.sh
+   ```
 
-3. Start the containers and unseal Vault:
+3. Copy your Vault Enterprise license to `vault.hclic` and start the containers:
    ```bash
    ./vup
    ```
@@ -94,3 +92,41 @@ vault policy write mybot mybot-policy.hcl
 
 Feel free to adjust domains and paths in `docker-compose.yaml` and
 `vault/conf/vault.hcl` to match your local environment.
+
+## Troubleshooting
+
+### "permission denied" when creating `/vault/data/vault.db`
+
+If Vault fails to start with an error similar to:
+
+```
+Error initializing storage of type raft: failed to create fsm: failed to open bolt file: open /vault/data/vault.db: permission denied
+```
+
+The data volumes are likely owned by `root` on the host. Vault runs as UID `100` inside the container and requires write access to these volumes.
+
+Fix the ownership as follows:
+
+1. Stop the stack and remove the containers (volumes are kept):
+
+   ```bash
+   ./vdown
+   ```
+
+2. For each data volume, find its mountpoint and change ownership to `100:100`:
+
+   ```bash
+   docker volume inspect local-vault_c1-node1-data | jq -r '.[0].Mountpoint'
+   sudo chown -R 100:100 <mountpoint>
+   ```
+
+   Replace `local-vault_c1-node1-data` with the other volume names (`c1-node2-data`, `c1-node3-data`, etc.) and repeat the `chown` command for each.
+
+3. Start the stack again:
+
+   ```bash
+   ./vup
+   ```
+
+4. If you previously removed the volumes with `docker compose down -v`, reinitialize Vault and unseal it as described in the **Getting started** section.
+
