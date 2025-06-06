@@ -1,8 +1,26 @@
 #!/bin/bash
 
-. ~/data/venv
+# Load environment variables if available
+VENV_DIR="$HOME/data/venv"
+if [ -f "$VENV_DIR" ]; then
+  . "$VENV_DIR"
+fi
 
-cd ~/data && \
-  /opt/homebrew/bin/docker-compose up -d && \
-  sleep 2 && \
+# Determine which Compose file to use. Prefer the multi-cluster
+# configuration if present.
+COMPOSE_FILE="$HOME/data/docker-compose.yml"
+if [ ! -f "$COMPOSE_FILE" ]; then
+  COMPOSE_FILE="$HOME/data/docker-compose.yaml"
+fi
+
+# Choose the compose command based on what is installed
+if command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE_CMD="docker-compose"
+else
+  COMPOSE_CMD="docker compose"
+fi
+
+cd "$HOME/data" && \
+  $COMPOSE_CMD -f "$COMPOSE_FILE" up -d && \
+  sleep 5 && \
   vault operator unseal "$VAULT_SEAL_KEY"
