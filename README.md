@@ -73,9 +73,9 @@ shown below:
    source venv
    ```
 
-5. The Vault UI will be available at `https://127.0.0.1:8200` (or
-   `https://vault.mac.example.com` if you mapped the hostname) and the
-   Traefik dashboard at `https://traefik.mac.example.com`.
+5. The Vault UI will be available at `http://127.0.0.1:8200` (or
+   `http://vault.mac.example.com` if you mapped the hostname) and the
+   Traefik dashboard at `http://traefik.mac.example.com`.
 
 6. When finished, stop the containers with:
    ```bash
