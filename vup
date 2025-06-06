@@ -5,4 +5,4 @@
 cd ~/data && \
   /opt/homebrew/bin/docker-compose up -d && \
   sleep 2 && \
-  vault operator unseal $VAULT_SEAL_KEY
+  vault operator unseal "$VAULT_SEAL_KEY"
