@@ -1,7 +1,10 @@
 #!/bin/bash
 
 export VAULT_TOKEN=$(cat ~/data/vault-init.json | jq -r .root_token)
-export VAULT_SEAL_KEY=$(cat ~/data/vault-init.json | jq -r .unseal_keys_b64[])
+# Use only the first unseal key when exporting VAULT_SEAL_KEY
+# The previous command expanded all unseal keys which caused
+# `vault operator unseal` to receive multiple arguments.
+export VAULT_SEAL_KEY=$(jq -r '.unseal_keys_b64[0]' ~/data/vault-init.json)
 export VAULT_ADDR=https://vault.mac.example.com:8200
 export VAULT_SKIP_VERIFY=true
 
