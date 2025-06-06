@@ -12,15 +12,14 @@ for cmd in docker docker-compose jq openssl; do
   fi
 done
 
-# Generate self-signed certificate if missing
-if [ ! -f certs/privkey.pem ]; then
-  openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
-    -keyout certs/privkey.pem \
-    -out certs/certificate.pem \
-    -subj "/CN=mac.example.com"
-  cp certs/certificate.pem certs/fullchain.pem
-  cp certs/certificate.pem certs/ca.pem
-fi
+# Generate fresh self-signed certificates, replacing any existing files
+rm -f certs/privkey.pem certs/certificate.pem certs/fullchain.pem certs/ca.pem
+openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+  -keyout certs/privkey.pem \
+  -out certs/certificate.pem \
+  -subj "/CN=mac.example.com"
+cp certs/certificate.pem certs/fullchain.pem
+cp certs/certificate.pem certs/ca.pem
 
 # Create traefik tls config
 cat > traefik/tls.toml <<'CONFIG'
