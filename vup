@@ -1,16 +1,19 @@
 #!/bin/bash
 
+# Determine the repository root based on this script's location
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 # Load environment variables if available
-VENV_DIR="$HOME/data/venv"
+VENV_DIR="$SCRIPT_DIR/venv"
 if [ -f "$VENV_DIR" ]; then
   . "$VENV_DIR"
 fi
 
 # Determine which Compose file to use. Prefer the multi-cluster
 # configuration if present.
-COMPOSE_FILE="$HOME/data/docker-compose.yml"
+COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
 if [ ! -f "$COMPOSE_FILE" ]; then
-  COMPOSE_FILE="$HOME/data/docker-compose.yaml"
+  COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yaml"
 fi
 
 # Choose the compose command based on what is installed
@@ -20,7 +23,7 @@ else
   COMPOSE_CMD="docker compose"
 fi
 
-cd "$HOME/data" && \
+cd "$SCRIPT_DIR" && \
   $COMPOSE_CMD -f "$COMPOSE_FILE" up -d && \
   sleep 5 && \
   vault operator unseal "$VAULT_SEAL_KEY"

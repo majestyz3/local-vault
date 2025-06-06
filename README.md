@@ -45,11 +45,12 @@ shown below:
 
 ## Getting started
 
-1. Clone this repository. The helper scripts assume it lives under
-   `~/data`. Either clone it there or modify the scripts accordingly.
+1. Clone this repository anywhere on your filesystem. The helper
+   scripts automatically detect their location, so no special path is
+   required.
    ```bash
-   git clone <repo-url> ~/data
-   cd ~/data
+   git clone <repo-url> <any-path>
+   cd <any-path>
    ```
 
 2. Ensure the `certs/` and `traefik/` directories contain the required files

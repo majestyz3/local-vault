@@ -1,6 +1,21 @@
 #!/bin/bash
 
-. ~/data/venv
+# Determine the repository root based on this script's location
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-cd ~/data && \
-  /opt/homebrew/bin/docker-compose down
+# Load environment variables if available
+[ -f "$SCRIPT_DIR/venv" ] && . "$SCRIPT_DIR/venv"
+
+# Determine which Compose file to use
+COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
+[ -f "$COMPOSE_FILE" ] || COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yaml"
+
+# Choose the compose command based on what is installed
+if command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE_CMD="docker-compose"
+else
+  COMPOSE_CMD="docker compose"
+fi
+
+cd "$SCRIPT_DIR" && \
+  $COMPOSE_CMD -f "$COMPOSE_FILE" down
