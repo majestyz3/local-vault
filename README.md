@@ -2,7 +2,7 @@
 
 This repository contains a minimal setup for running HashiCorp Vault locally
 with Traefik acting as a reverse proxy. The Docker Compose stack provisions a
-Vault Enterprise container and a Traefik instance that serves Vault over HTTPS.
+Vault Enterprise container and a Traefik instance that serves Vault over HTTP.
 Helper scripts are included to streamline starting and stopping the environment
 and loading common environment variables.
 
