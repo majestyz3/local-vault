@@ -25,5 +25,8 @@ fi
 
 cd "$SCRIPT_DIR" && \
   $COMPOSE_CMD -f "$COMPOSE_FILE" up -d && \
-  sleep 5 && \
+  echo "Waiting for Vault to become available..." && \
+  until curl -s "$VAULT_ADDR/v1/sys/health" >/dev/null 2>&1; do
+    sleep 2
+  done && \
   vault operator unseal "$VAULT_SEAL_KEY"
