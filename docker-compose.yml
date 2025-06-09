@@ -1,57 +1,73 @@
+
+version: "3.8"
 services:
   traefik:
     image: traefik:3.1.6
     command:
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
+      - "--api.dashboard=true"         # <== Enable dashboard
+      - "--api.insecure=true"          # <== WARNING: this exposes dashboard without auth
+      - "--providers.docker=true"
     ports:
       - "8200:80"
+      - "8080:8080"    # Expose Traefik dashboard 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - default
 
-  # Cluster 1
   c1-node1:
     image: hashicorp/vault-enterprise:1.19.0-ent
     container_name: c1-node1
     hostname: c1-node1
+    command: vault server -config=/vault/config/local.json
     volumes:
-      - c1-node1-data:/vault/data
+      - c1-node1-data:/vault/file
+      - ./vault.hclic:/vault/vault.hclic
     environment:
       VAULT_LOCAL_CONFIG: |
         ui = true
+        license_path = "/vault/vault.hclic"
         listener "tcp" {
           address = "0.0.0.0:8200"
           cluster_address = "0.0.0.0:8201"
           tls_disable = true
         }
         storage "raft" {
-          path = "/vault/data"
+          path = "/vault/file"
           node_id = "c1-node1"
         }
         cluster_addr = "http://c1-node1:8201"
         api_addr = "http://c1-node1:8200"
+    
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cluster1.rule=Host(`cluster1.local`) || Host(`127.0.0.1`)"
-      - "traefik.http.services.cluster1.loadbalancer.server.port=8200"
+      - "traefik.http.routers.c1.rule=Host(`c1.local`)"
+      - "traefik.http.services.c1.loadbalancer.server.port=8200"
 
   c1-node2:
     image: hashicorp/vault-enterprise:1.19.0-ent
     container_name: c1-node2
     hostname: c1-node2
+    command: vault server -config=/vault/config/local.json
     volumes:
-      - c1-node2-data:/vault/data
+      - c1-node2-data:/vault/file
+      - ./vault.hclic:/vault/vault.hclic
     environment:
       VAULT_LOCAL_CONFIG: |
         ui = true
+        license_path = "/vault/vault.hclic"
         listener "tcp" {
           address = "0.0.0.0:8200"
           cluster_address = "0.0.0.0:8201"
           tls_disable = true
         }
         storage "raft" {
-          path = "/vault/data"
+          path = "/vault/file"
           node_id = "c1-node2"
           retry_join {
             leader_api_addr = "http://c1-node1:8200"
@@ -59,27 +75,35 @@ services:
         }
         cluster_addr = "http://c1-node2:8201"
         api_addr = "http://c1-node2:8200"
+    
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cluster1.rule=Host(`cluster1.local`) || Host(`127.0.0.1`)"
-      - "traefik.http.services.cluster1.loadbalancer.server.port=8200"
+      - "traefik.http.routers.c1.rule=Host(`c1.local`)"
+      - "traefik.http.services.c1.loadbalancer.server.port=8200"
 
   c1-node3:
     image: hashicorp/vault-enterprise:1.19.0-ent
     container_name: c1-node3
     hostname: c1-node3
+    command: vault server -config=/vault/config/local.json
     volumes:
-      - c1-node3-data:/vault/data
+      - c1-node3-data:/vault/file
+      - ./vault.hclic:/vault/vault.hclic
     environment:
       VAULT_LOCAL_CONFIG: |
         ui = true
+        license_path = "/vault/vault.hclic"
         listener "tcp" {
           address = "0.0.0.0:8200"
           cluster_address = "0.0.0.0:8201"
           tls_disable = true
         }
         storage "raft" {
-          path = "/vault/data"
+          path = "/vault/file"
           node_id = "c1-node3"
           retry_join {
             leader_api_addr = "http://c1-node1:8200"
@@ -87,53 +111,68 @@ services:
         }
         cluster_addr = "http://c1-node3:8201"
         api_addr = "http://c1-node3:8200"
+    
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cluster1.rule=Host(`cluster1.local`) || Host(`127.0.0.1`)"
-      - "traefik.http.services.cluster1.loadbalancer.server.port=8200"
+      - "traefik.http.routers.c1.rule=Host(`c1.local`)"
+      - "traefik.http.services.c1.loadbalancer.server.port=8200"
 
-  # Cluster 2
   c2-node1:
     image: hashicorp/vault-enterprise:1.19.0-ent
     container_name: c2-node1
     hostname: c2-node1
+    command: vault server -config=/vault/config/local.json
     volumes:
-      - c2-node1-data:/vault/data
+      - c2-node1-data:/vault/file
+      - ./vault.hclic:/vault/vault.hclic
     environment:
       VAULT_LOCAL_CONFIG: |
         ui = true
+        license_path = "/vault/vault.hclic"
         listener "tcp" {
           address = "0.0.0.0:8200"
           cluster_address = "0.0.0.0:8201"
           tls_disable = true
         }
         storage "raft" {
-          path = "/vault/data"
+          path = "/vault/file"
           node_id = "c2-node1"
         }
         cluster_addr = "http://c2-node1:8201"
         api_addr = "http://c2-node1:8200"
+    
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cluster2.rule=Host(`cluster2.local`)"
-      - "traefik.http.services.cluster2.loadbalancer.server.port=8200"
+      - "traefik.http.routers.c2.rule=Host(`c2.local`)"
+      - "traefik.http.services.c2.loadbalancer.server.port=8200"
 
   c2-node2:
     image: hashicorp/vault-enterprise:1.19.0-ent
     container_name: c2-node2
     hostname: c2-node2
+    command: vault server -config=/vault/config/local.json
     volumes:
-      - c2-node2-data:/vault/data
+      - c2-node2-data:/vault/file
+      - ./vault.hclic:/vault/vault.hclic
     environment:
       VAULT_LOCAL_CONFIG: |
         ui = true
+        license_path = "/vault/vault.hclic"
         listener "tcp" {
           address = "0.0.0.0:8200"
           cluster_address = "0.0.0.0:8201"
           tls_disable = true
         }
         storage "raft" {
-          path = "/vault/data"
+          path = "/vault/file"
           node_id = "c2-node2"
           retry_join {
             leader_api_addr = "http://c2-node1:8200"
@@ -141,27 +180,35 @@ services:
         }
         cluster_addr = "http://c2-node2:8201"
         api_addr = "http://c2-node2:8200"
+    
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cluster2.rule=Host(`cluster2.local`)"
-      - "traefik.http.services.cluster2.loadbalancer.server.port=8200"
+      - "traefik.http.routers.c2.rule=Host(`c2.local`)"
+      - "traefik.http.services.c2.loadbalancer.server.port=8200"
 
   c2-node3:
     image: hashicorp/vault-enterprise:1.19.0-ent
     container_name: c2-node3
     hostname: c2-node3
+    command: vault server -config=/vault/config/local.json
     volumes:
-      - c2-node3-data:/vault/data
+      - c2-node3-data:/vault/file
+      - ./vault.hclic:/vault/vault.hclic
     environment:
       VAULT_LOCAL_CONFIG: |
         ui = true
+        license_path = "/vault/vault.hclic"
         listener "tcp" {
           address = "0.0.0.0:8200"
           cluster_address = "0.0.0.0:8201"
           tls_disable = true
         }
         storage "raft" {
-          path = "/vault/data"
+          path = "/vault/file"
           node_id = "c2-node3"
           retry_join {
             leader_api_addr = "http://c2-node1:8200"
@@ -169,53 +216,68 @@ services:
         }
         cluster_addr = "http://c2-node3:8201"
         api_addr = "http://c2-node3:8200"
+    
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cluster2.rule=Host(`cluster2.local`)"
-      - "traefik.http.services.cluster2.loadbalancer.server.port=8200"
+      - "traefik.http.routers.c2.rule=Host(`c2.local`)"
+      - "traefik.http.services.c2.loadbalancer.server.port=8200"
 
-  # Cluster 3
   c3-node1:
     image: hashicorp/vault-enterprise:1.19.0-ent
     container_name: c3-node1
     hostname: c3-node1
+    command: vault server -config=/vault/config/local.json
     volumes:
-      - c3-node1-data:/vault/data
+      - c3-node1-data:/vault/file
+      - ./vault.hclic:/vault/vault.hclic
     environment:
       VAULT_LOCAL_CONFIG: |
         ui = true
+        license_path = "/vault/vault.hclic"
         listener "tcp" {
           address = "0.0.0.0:8200"
           cluster_address = "0.0.0.0:8201"
           tls_disable = true
         }
         storage "raft" {
-          path = "/vault/data"
+          path = "/vault/file"
           node_id = "c3-node1"
         }
         cluster_addr = "http://c3-node1:8201"
         api_addr = "http://c3-node1:8200"
+    
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cluster3.rule=Host(`cluster3.local`)"
-      - "traefik.http.services.cluster3.loadbalancer.server.port=8200"
+      - "traefik.http.routers.c3.rule=Host(`c3.local`)"
+      - "traefik.http.services.c3.loadbalancer.server.port=8200"
 
   c3-node2:
     image: hashicorp/vault-enterprise:1.19.0-ent
     container_name: c3-node2
     hostname: c3-node2
+    command: vault server -config=/vault/config/local.json
     volumes:
-      - c3-node2-data:/vault/data
+      - c3-node2-data:/vault/file
+      - ./vault.hclic:/vault/vault.hclic
     environment:
       VAULT_LOCAL_CONFIG: |
         ui = true
+        license_path = "/vault/vault.hclic"
         listener "tcp" {
           address = "0.0.0.0:8200"
           cluster_address = "0.0.0.0:8201"
           tls_disable = true
         }
         storage "raft" {
-          path = "/vault/data"
+          path = "/vault/file"
           node_id = "c3-node2"
           retry_join {
             leader_api_addr = "http://c3-node1:8200"
@@ -223,27 +285,35 @@ services:
         }
         cluster_addr = "http://c3-node2:8201"
         api_addr = "http://c3-node2:8200"
+    
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cluster3.rule=Host(`cluster3.local`)"
-      - "traefik.http.services.cluster3.loadbalancer.server.port=8200"
+      - "traefik.http.routers.c3.rule=Host(`c3.local`)"
+      - "traefik.http.services.c3.loadbalancer.server.port=8200"
 
   c3-node3:
     image: hashicorp/vault-enterprise:1.19.0-ent
     container_name: c3-node3
     hostname: c3-node3
+    command: vault server -config=/vault/config/local.json
     volumes:
-      - c3-node3-data:/vault/data
+      - c3-node3-data:/vault/file
+      - ./vault.hclic:/vault/vault.hclic
     environment:
       VAULT_LOCAL_CONFIG: |
         ui = true
+        license_path = "/vault/vault.hclic"
         listener "tcp" {
           address = "0.0.0.0:8200"
           cluster_address = "0.0.0.0:8201"
           tls_disable = true
         }
         storage "raft" {
-          path = "/vault/data"
+          path = "/vault/file"
           node_id = "c3-node3"
           retry_join {
             leader_api_addr = "http://c3-node1:8200"
@@ -251,53 +321,68 @@ services:
         }
         cluster_addr = "http://c3-node3:8201"
         api_addr = "http://c3-node3:8200"
+    
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cluster3.rule=Host(`cluster3.local`)"
-      - "traefik.http.services.cluster3.loadbalancer.server.port=8200"
+      - "traefik.http.routers.c3.rule=Host(`c3.local`)"
+      - "traefik.http.services.c3.loadbalancer.server.port=8200"
 
-  # Cluster 4
   c4-node1:
     image: hashicorp/vault-enterprise:1.19.0-ent
     container_name: c4-node1
     hostname: c4-node1
+    command: vault server -config=/vault/config/local.json
     volumes:
-      - c4-node1-data:/vault/data
+      - c4-node1-data:/vault/file
+      - ./vault.hclic:/vault/vault.hclic
     environment:
       VAULT_LOCAL_CONFIG: |
         ui = true
+        license_path = "/vault/vault.hclic"
         listener "tcp" {
           address = "0.0.0.0:8200"
           cluster_address = "0.0.0.0:8201"
           tls_disable = true
         }
         storage "raft" {
-          path = "/vault/data"
+          path = "/vault/file"
           node_id = "c4-node1"
         }
         cluster_addr = "http://c4-node1:8201"
         api_addr = "http://c4-node1:8200"
+    
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cluster4.rule=Host(`cluster4.local`)"
-      - "traefik.http.services.cluster4.loadbalancer.server.port=8200"
+      - "traefik.http.routers.c4.rule=Host(`c4.local`)"
+      - "traefik.http.services.c4.loadbalancer.server.port=8200"
 
   c4-node2:
     image: hashicorp/vault-enterprise:1.19.0-ent
     container_name: c4-node2
     hostname: c4-node2
+    command: vault server -config=/vault/config/local.json
     volumes:
-      - c4-node2-data:/vault/data
+      - c4-node2-data:/vault/file
+      - ./vault.hclic:/vault/vault.hclic
     environment:
       VAULT_LOCAL_CONFIG: |
         ui = true
+        license_path = "/vault/vault.hclic"
         listener "tcp" {
           address = "0.0.0.0:8200"
           cluster_address = "0.0.0.0:8201"
           tls_disable = true
         }
         storage "raft" {
-          path = "/vault/data"
+          path = "/vault/file"
           node_id = "c4-node2"
           retry_join {
             leader_api_addr = "http://c4-node1:8200"
@@ -305,27 +390,35 @@ services:
         }
         cluster_addr = "http://c4-node2:8201"
         api_addr = "http://c4-node2:8200"
+    
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cluster4.rule=Host(`cluster4.local`)"
-      - "traefik.http.services.cluster4.loadbalancer.server.port=8200"
+      - "traefik.http.routers.c4.rule=Host(`c4.local`)"
+      - "traefik.http.services.c4.loadbalancer.server.port=8200"
 
   c4-node3:
     image: hashicorp/vault-enterprise:1.19.0-ent
     container_name: c4-node3
     hostname: c4-node3
+    command: vault server -config=/vault/config/local.json
     volumes:
-      - c4-node3-data:/vault/data
+      - c4-node3-data:/vault/file
+      - ./vault.hclic:/vault/vault.hclic
     environment:
       VAULT_LOCAL_CONFIG: |
         ui = true
+        license_path = "/vault/vault.hclic"
         listener "tcp" {
           address = "0.0.0.0:8200"
           cluster_address = "0.0.0.0:8201"
           tls_disable = true
         }
         storage "raft" {
-          path = "/vault/data"
+          path = "/vault/file"
           node_id = "c4-node3"
           retry_join {
             leader_api_addr = "http://c4-node1:8200"
@@ -333,10 +426,15 @@ services:
         }
         cluster_addr = "http://c4-node3:8201"
         api_addr = "http://c4-node3:8200"
+    
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cluster4.rule=Host(`cluster4.local`)"
-      - "traefik.http.services.cluster4.loadbalancer.server.port=8200"
+      - "traefik.http.routers.c4.rule=Host(`c4.local`)"
+      - "traefik.http.services.c4.loadbalancer.server.port=8200"
 
 volumes:
   c1-node1-data:
@@ -351,3 +449,6 @@ volumes:
   c4-node1-data:
   c4-node2-data:
   c4-node3-data:
+networks:
+  internal:
+    driver: bridge

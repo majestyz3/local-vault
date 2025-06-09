@@ -1,32 +1,40 @@
 #!/bin/bash
 
-# Determine the repository root based on this script's location
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+set -e
 
-# Load environment variables if available
-VENV_DIR="$SCRIPT_DIR/venv"
-if [ -f "$VENV_DIR" ]; then
-  . "$VENV_DIR"
-fi
+echo "🚀 Starting Vault Cluster..."
+docker compose up -d
 
-# Determine which Compose file to use. Prefer the multi-cluster
-# configuration if present.
-COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
-if [ ! -f "$COMPOSE_FILE" ]; then
-  COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yaml"
-fi
+# Wait for primary node to be reachable
+echo "⏳ Waiting for Vault to respond..."
+until curl -s http://127.0.0.1:8200/v1/sys/health > /dev/null 2>&1; do
+  sleep 2
+done
 
-# Choose the compose command based on what is installed
-if command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE_CMD="docker-compose"
+echo "🔍 Checking initialization status..."
+IS_INITIALIZED=$(docker exec c3-node1 vault status -format=json | jq .initialized)
+
+if [ "$IS_INITIALIZED" = "false" ]; then
+  echo "🧪 Vault not initialized. Initializing now..."
+
+  INIT_OUTPUT=$(docker exec c3-node1 vault operator init -key-shares=1 -key-threshold=1 -format=json)
+  UNSEAL_KEY=$(echo "$INIT_OUTPUT" | jq -r '.unseal_keys_b64[0]')
+  ROOT_TOKEN=$(echo "$INIT_OUTPUT" | jq -r '.root_token')
+
+  echo "$UNSEAL_KEY" > .unseal.key
+  echo "$ROOT_TOKEN" > .root.token
 else
-  COMPOSE_CMD="docker compose"
+  echo "✅ Vault already initialized."
+  UNSEAL_KEY=$(<.unseal.key)
+  ROOT_TOKEN=$(<.root.token)
 fi
 
-cd "$SCRIPT_DIR" && \
-  $COMPOSE_CMD -f "$COMPOSE_FILE" up -d && \
-  echo "Waiting for Vault to become available..." && \
-  until [[ "$(curl -s -o /dev/null -w "%{http_code}" "$VAULT_ADDR/v1/sys/health")" =~ ^(200|429|501|503)$ ]]; do
-    sleep 2
-  done && \
-  vault operator unseal "$VAULT_SEAL_KEY"
+echo "🔓 Unsealing all nodes..."
+for NODE in c3-node1 c3-node2 c3-node3; do
+  docker exec $NODE vault operator unseal "$UNSEAL_KEY"
+done
+
+echo "🔐 Logging in..."
+docker exec -e VAULT_ADDR=http://127.0.0.1:8200 c3-node1 vault login "$ROOT_TOKEN"
+
+echo "✅ Vault cluster is initialized, unsealed, and ready."
